@@ -1,10 +1,37 @@
-import data_connection as dc
+def page_2(name_file, id_sprint):
+    sprint_table = pd.read_csv('../TestData/Sprints.csv',sep=';',skiprows=1)
+    data = pd.read_csv('../TestData/Tasks.csv',skiprows=1, sep = ';')
 
-data_con = dc.DataConnection()
+    df_sprint = data[data['entity_id'].isin(id_sprint)].reset_index(drop=True)
 
-data_con.open_files()
-#print(data_con.get_by_id(1805925, "tasks"))
-#temp = data_con.get_sprint_tasks(len(data_con.sprints)-1)
-#print(temp)
-temp1 = data_con.get_history_for_sprint(len(data_con.sprints)-1)
-print(temp1)
+    task_chel_pt = df_sprint.pivot_table(index=['assignee'], values=['estimation','spent'], aggfunc='sum')
+    task_chel_pt = task_chel_pt[task_chel_pt['estimation']>0]
+
+    task_chel_pt['estimation'] = (task_chel_pt['estimation']/3600).round().astype('Int64')
+    task_chel_pt['spent'] = (task_chel_pt['spent']/3600).round().astype('Int64')
+
+    task_chel_pt['stat'] = task_chel_pt["estimation"] - task_chel_pt["spent"]
+
+    task_chel_pt['procent'] = (((task_chel_pt['spent'] - task_chel_pt['estimation']) / task_chel_pt['estimation']) * 100).round(0)
+
+    def categorize(row):
+        if row['estimation'] == row['stat']:
+            return -1
+        difference = row['spent'] - row['estimation']
+        percentage_diff = (difference / row['estimation']) * 100
+        if abs(percentage_diff) == 0:
+            return 0
+        elif abs(percentage_diff) <= 10:
+            return 10 if percentage_diff > 0 else -10
+        elif abs(percentage_diff) <= 20:
+            return 20 if percentage_diff > 0 else -20
+        elif abs(percentage_diff) <= 60:
+            return 60 if percentage_diff > 0 else -60
+        else:
+            return 100 if percentage_diff > 0 else -100
+        
+    task_chel_pt["Category"] = task_chel_pt.apply(categorize, axis=1)
+
+    task = task_chel_pt.to_numpy()
+
+    return task

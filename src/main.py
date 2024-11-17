@@ -3,9 +3,26 @@ from fastapi import FastAPI, Request, UploadFile
 app = FastAPI()
 
 # Определение маршрутов
-@app.get("/root")
+@app.get("/root/page1")
 async def root():
-    return {"message": "Hello World!"}
+    return {"sprint": "Спринт 2024.3.6.NPP Shared Sprint",
+            "total_etimate": 146,
+            "real_estimate": 100,
+            "tasks_count": 58,
+            "done_tasks_count": 39,
+            "removed_tasks_count": 5,
+            "backloged_tasks_count": 4,
+            "total_backlog": 39,
+            "total_removed": 26,
+            "change_by_days": {
+                "day1": [47, 0],
+                "day2": [8, 3],
+                "day3": [12, 1],
+                "day4": [3, 5],
+                "day5": [2, 4],
+                "day6": [0, 0],
+                "day7": [0, 0]
+            }}
 
 @app.post("/main_page")
 async def main_page(request: Request):

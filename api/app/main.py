@@ -146,7 +146,8 @@ def download_from_supabase(
     ).download(remote_file_path)
     
     with open(local_path, "wb") as f:
-        f.write(response.content)
+        f.write(response)
+
     print("Supabase file saved at:", local_path)
     print(f"Downloaded ZIP saved to: {local_path}")
 
@@ -303,8 +304,5 @@ async def get_sprint_data():
         }
     }
 
-# Для запуска сервера
-# Сохраните код в файле, например, main.py и выполните команду:
-# uvicorn main:app --reload
 
 # curl -X POST "http://127.0.0.1:8000/process-zip-supabase/" -H "Content-Type: application/json" -d '{"folder_path": "f124eb6b-b478-43ae-b084-00e73af53c7c/upload_01/", "bucket_name": "sprint-data"}'

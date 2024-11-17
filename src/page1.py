@@ -1,4 +1,11 @@
-def page1(data, history_table, sprint_table, number, date_start, date_end)
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from datetime import datetime
+import supabase
+
+def page1(data, history_table, sprint_table, number, date_start, date_end):
 
     data = pd.read_csv(data, skiprows=1, sep=';', encoding='utf-8')
     history_table = pd.read_csv(history_table, skiprows=1, sep=';', encoding='utf-8')
@@ -57,4 +64,4 @@ def page1(data, history_table, sprint_table, number, date_start, date_end)
         sprints_arr = list(sprint_table['entity_ids'][i])
         return sprints_arr
 
-return take_info_with_id(number,date_start,date_end)
+    return take_info_with_id(number,date_start,date_end)

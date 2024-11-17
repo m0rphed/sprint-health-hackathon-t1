@@ -1,6 +1,6 @@
 def page_2(name_file, id_sprint):
-    sprint_table = pd.read_csv('../TestData/Sprints.csv',sep=';',skiprows=1)
-    data = pd.read_csv('../TestData/Tasks.csv',skiprows=1, sep = ';')
+    sprint_table = pd.read_csv(name_file, sep=';',skiprows=1)
+    data = pd.read_csv(name_file, skiprows=1, sep = ';')
 
     df_sprint = data[data['entity_id'].isin(id_sprint)].reset_index(drop=True)
 

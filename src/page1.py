@@ -1,10 +1,3 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-from datetime import datetime
-import supabase
-
 def page1(data, history_table, sprint_table, number, date_start, date_end):
 
     data = pd.read_csv(data, skiprows=1, sep=';', encoding='utf-8')

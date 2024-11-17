@@ -21,7 +21,7 @@ DATA_DIR = "./data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE")
 if SUPABASE_KEY is None or SUPABASE_URL is None:
     raise RuntimeError("Environment variables for Supabase was not found")
 

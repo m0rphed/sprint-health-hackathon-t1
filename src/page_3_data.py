@@ -33,5 +33,16 @@ def page_2(name_file, id_sprint):
     task_chel_pt["Category"] = task_chel_pt.apply(categorize, axis=1)
 
     task = task_chel_pt.to_numpy()
-
-    return task
+    empl = task_chel_pt.index
+    rez = []
+    for i in range(len(task)):
+        newEl = {
+            'assignee':empl[i],
+            'estimation':	task[i][0],
+            'spent':task[i][1],
+            'stat':	task[i][2],
+            'procent':task[i][3],
+            'category':task[i][4]
+        }
+        rez.append(newEl)
+    return rez

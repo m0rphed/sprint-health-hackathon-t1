@@ -1,83 +1,175 @@
-import React from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ChartBar, GitBranch } from 'lucide-react';
-// import { ChartBar } from 'lucide-react';
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import Link from "next/link";
+import { Github } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
+
+const formSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6).optional(),
+});
+
+export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const isGuestMode = searchParams.get("mode") === "guest";
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setIsLoading(true);
+      
+      if (isGuestMode) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: values.email,
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Magic link sent!",
+          description: "Check your email for the login link.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: values.email,
+          password: values.password!,
+        });
+        
+        if (error) throw error;
+        
+        router.push("/dashboard");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleGithubLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-8">
-            <ChartBar className="h-16 w-16 text-primary" />
-          </div>
-          <h1 className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            Sprint Analysis Dashboard
-          </h1>
-          <p className="text-xl text-muted-foreground mb-12">
-            Upload your sprint data and get instant insights into your team's
-            performance. Track velocity, burndown charts, and more with our
-            powerful analytics tools.
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="w-full max-w-md space-y-8 bg-card p-8 rounded-lg shadow-lg">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold">{isGuestMode ? "Continue as Guest" : "Welcome Back"}</h2>
+          <p className="text-muted-foreground mt-2">
+            {isGuestMode
+              ? "Enter your email to receive a magic link"
+              : "Sign in to your account"}
           </p>
-
-          <div className="space-y-4 md:space-y-0 md:space-x-4">
-            <Button asChild size="lg" className="px-8">
-              <Link href="/login">Get Started</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="px-8">
-              <Link href="/login?mode=guest">Try as Guest</Link>
-            </Button>
-          </div>
-
-          <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-card p-6 rounded-lg shadow-lg">
-              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <ChartBar className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">
-                Real-time Analytics
-              </h3>
-              <p className="text-muted-foreground">
-                Get instant insights into your sprint performance with
-                interactive charts and metrics.
-              </p>
-            </div>
-
-            <div className="bg-card p-6 rounded-lg shadow-lg">
-              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <GitBranch className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Version Control</h3>
-              <p className="text-muted-foreground">
-                Track changes across sprints and compare performance over time.
-              </p>
-            </div>
-
-            <div className="bg-card p-6 rounded-lg shadow-lg">
-              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <svg
-                  className="h-6 w-6 text-primary"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Sprint Planning</h3>
-              <p className="text-muted-foreground">
-                Use historical data to make informed decisions for future sprint
-                planning.
-              </p>
-            </div>
-          </div>
         </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="email@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {!isGuestMode && (
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Loading..." : isGuestMode ? "Send Magic Link" : "Sign In"}
+            </Button>
+          </form>
+        </Form>
+
+        {!isGuestMode && (
+          <>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleGithubLogin}
+            >
+              <Github className="mr-2 h-4 w-4" />
+              GitHub
+            </Button>
+
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              Don't have an account?{" "}
+              <Link href="/register" className="text-primary hover:underline">
+                Register
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { SprintCharts } from "@/components/sprint-charts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,8 +38,8 @@ import { cn, truncateFilename } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface UploadFolder {
-  name: string;
   id: string;
+  name: string;
   created_at: string;
 }
 
@@ -229,7 +230,6 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Delete all files in the folder
       const filePaths = files.map(file => 
         `${user.id}/${selectedFolder.id}/${file.name}`
       );
@@ -386,46 +386,19 @@ export default function DashboardPage() {
                 <Tabs defaultValue="overview" className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="burndown">Burndown Chart</TabsTrigger>
-                    <TabsTrigger value="velocity">Velocity Metrics</TabsTrigger>
+                    <TabsTrigger value="analysis">Analysis</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card className="p-4">
-                        <h3 className="font-semibold mb-2">Total Story Points</h3>
-                        <p className="text-2xl">120</p>
-                      </Card>
-                      <Card className="p-4">
-                        <h3 className="font-semibold mb-2">Completed Points</h3>
-                        <p className="text-2xl">85</p>
-                      </Card>
-                      <Card className="p-4">
-                        <h3 className="font-semibold mb-2">Sprint Progress</h3>
-                        <p className="text-2xl">71%</p>
-                      </Card>
-                    </div>
+                  <TabsContent value="overview">
+                    <SprintCharts sprintId={selectedFile.name} />
                   </TabsContent>
 
-                  <TabsContent value="burndown">
-                    <Card className="p-4">
-                      <h3 className="font-semibold mb-4">Burndown Chart</h3>
-                      <div className="h-[400px] flex items-center justify-center border rounded">
-                        <p className="text-muted-foreground">
-                          Burndown chart visualization coming soon
-                        </p>
-                      </div>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="velocity">
-                    <Card className="p-4">
-                      <h3 className="font-semibold mb-4">Team Velocity</h3>
-                      <div className="h-[400px] flex items-center justify-center border rounded">
-                        <p className="text-muted-foreground">
-                          Velocity metrics visualization coming soon
-                        </p>
-                      </div>
+                  <TabsContent value="analysis">
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
+                      <p className="text-muted-foreground">
+                        Detailed sprint analysis coming soon...
+                      </p>
                     </Card>
                   </TabsContent>
                 </Tabs>

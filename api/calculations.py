@@ -135,6 +135,72 @@ def calculate_to_do_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
     return to_do_metric_df
 
 
+def _test_metric_todo(full_merged_df: pd.DataFrame) -> None:
+    # Вычисление метрики "К выполнению"
+    to_do_metric_df = calculate_to_do_metric(full_merged_df)
+    # Сохранение результатов в CSV файл
+    to_do_metric_df.to_csv("./to_do_metric_per_sprint.csv", index=False)
+    print(
+        "Метрика 'К выполнению' успешно сохранена в файл 'to_do_metric_per_sprint.csv'"
+    )
+
+
+def calculate_in_progress_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
+    # Фильтрация задач, не попадающих под критерии "Сделано" и "Снято" на конец спринта
+    latest_status_df = (
+        full_merged_df.sort_values(by=["history_date", "history_version"])
+        .groupby("task_id")
+        .tail(1)
+    )
+    in_progress_tasks_df = latest_status_df[
+        (latest_status_df["status"].isin(["В работе"]))
+        & (latest_status_df["sprint_name"].notna())
+    ]
+
+    # Расчет метрики "В работе" для каждого спринта
+    in_progress_metric = (
+        in_progress_tasks_df.groupby("sprint_name")["estimation"].sum() / 3600
+    )
+
+    in_progress_metric_df = in_progress_metric.reset_index()
+    in_progress_metric_df.columns = ["Sprint Name", "In Progress Metric (hours)"]
+    return in_progress_metric_df
+
+
+def _test_metric_in_progress(full_merged_df: pd.DataFrame) -> None:
+    # вычисление метрики "В работе"
+    in_progress_metric_df = calculate_in_progress_metric(full_merged_df)
+    # сохранение результатов в CSV файл
+    in_progress_metric_df.to_csv("in_progress_metric_per_sprint.csv", index=False)
+    print(
+        "Метрика 'В работе' успешно сохранена в файл 'in_progress_metric_per_sprint.csv'"
+    )
+
+
+def calculate_done_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
+    # Фильтрация задач, находящихся в статусах "Закрыто" или "Выполнено" на конец спринта
+    latest_status_df = full_merged_df.sort_values(by=["history_date", "history_version"]).groupby("task_id").tail(1)
+    done_tasks_df = latest_status_df[(latest_status_df["status"].isin(["Закрыто", "Выполнено"])) & (latest_status_df["sprint_name"].notna())]
+
+    # Исключение снятых объектов
+    done_tasks_df = done_tasks_df[~done_tasks_df["resolution"].isin(["Отклонено", "Отменено инициатором", "Дубликат"])]
+
+    # Расчет метрики "Сделано" для каждого спринта
+    done_metric = done_tasks_df.groupby("sprint_name")["estimation"].sum() / 3600
+
+    done_metric_df = done_metric.reset_index()
+    done_metric_df.columns = ["Sprint Name", "Done Metric (hours)"]
+    return done_metric_df
+
+
+def _test_metric_done(full_merged_df: pd.DataFrame) -> None:
+    # Вычисление метрики "Сделано"
+    done_metric_df = calculate_done_metric(full_merged_df)
+    # Сохранение результатов в CSV файл
+    done_metric_df.to_csv('done_metric_per_sprint.csv', index=False)
+    print("Метрика 'Сделано' успешно сохранена в файл 'done_metric_per_sprint.csv'")
+
+
 if __name__ == "__main__":
     # необработанные данные ровно в таком виде как были предоставлены
     raw_data = DatasetConfig(
@@ -145,13 +211,6 @@ if __name__ == "__main__":
 
     tables_cleaned = clean_up_tables(raw_data)
     full_merged_df = get_full_merged_df(tables_cleaned)
-
-    # Вычисление метрики "К выполнению"
-    to_do_metric_df = calculate_to_do_metric(full_merged_df)
-
-    # Сохранение результатов в CSV файл
-    to_do_metric_df.to_csv("./to_do_metric_per_sprint.csv", index=False)
-
-    print(
-        "Метрика 'К выполнению' успешно сохранена в файл 'to_do_metric_per_sprint.csv'"
-    )
+    _test_metric_in_progress(full_merged_df)
+    _test_metric_todo(full_merged_df)
+    _test_metric_done(full_merged_df)

@@ -1,14 +1,11 @@
 import os
 import ast
+from typing import Any
 import pandas as pd
 from dataclasses import dataclass
 from rich import print as print_rich
-from config import (
-    DATA_DIR_RAW,
-    ENTITIES_FILENAME,
-    HISTORY_FILENAME,
-    SPRINTS_FILENAME
-)
+from config import DATA_DIR_RAW, ENTITIES_FILENAME, HISTORY_FILENAME, SPRINTS_FILENAME
+
 
 @dataclass()
 class DatasetConfig:
@@ -38,7 +35,7 @@ def remove_full_duplicates(
     return df.drop_duplicates(), df.duplicated()
 
 
-def remove_empty_rows(df_name: str, df: pd.DataFrame) -> tuple[pd.DataFrame]:
+def remove_empty_rows(df_name: str, df: pd.DataFrame) -> pd.DataFrame:
     count = int(df.isna().all(axis=1).sum())
     print_rich(
         f"Всего в '[italic yellow]{df_name}[/italic yellow]' удалено полных пропусков: [red]{count}[/red]"
@@ -59,12 +56,12 @@ def clean_up_tables(config: DatasetConfig) -> dict[str, pd.DataFrame]:
     }
 
     # сохраняем дубликаты просто на всякий случай (они скорее всего не понадобятся)
-    duplicates: dict[str, pd.Series] = {}
+    duplicates: dict[str, pd.Series[Any]] = {}
     tables_cleaned: dict[str, pd.DataFrame] = {}
 
     for name, df in tables.items():
-        cleaned_df, duplicates = remove_full_duplicates(name, df)
-        duplicates[name] = duplicates
+        cleaned_df, dups = remove_full_duplicates(name, df)
+        duplicates[name] = dups
         tables_cleaned[name] = cleaned_df
 
     for name, df in tables.items():
@@ -115,7 +112,16 @@ def get_full_merged_df(tables_cleaned: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return full_merged_df
 
 
-def calculate_to_do_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
+def calculate_to_do_metric(
+    full_merged_df: pd.DataFrame, until_date: str | None = None
+) -> pd.DataFrame:
+    full_merged_df = full_merged_df.copy()
+    # фильтрация истории до заданной даты, если указана
+    if until_date:
+        full_merged_df = full_merged_df[
+            pd.to_datetime(full_merged_df["history_date"]) <= pd.to_datetime(until_date, format="%Y-%m-%d")
+        ]
+
     # фильтрация задач, находящихся в статусе "Создано" на конец спринта
     latest_status_df = (
         full_merged_df.sort_values(by=["history_date", "history_version"])
@@ -131,7 +137,7 @@ def calculate_to_do_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
     to_do_metric = to_do_tasks_df.groupby("sprint_name")["estimation"].sum() / 3600
 
     to_do_metric_df = to_do_metric.reset_index()
-    to_do_metric_df.columns = ["Sprint Name", "To Do Metric (hours)"]
+    to_do_metric_df.columns = pd.Index(["Sprint Name", "To Do Metric (hours)"])
     return to_do_metric_df
 
 
@@ -145,8 +151,17 @@ def _test_metric_todo(full_merged_df: pd.DataFrame) -> None:
     )
 
 
-def calculate_in_progress_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
-    # Фильтрация задач, не попадающих под критерии "Сделано" и "Снято" на конец спринта
+def calculate_in_progress_metric(
+    full_merged_df: pd.DataFrame, until_date: str | None = None
+) -> pd.DataFrame:
+    full_merged_df = full_merged_df.copy()
+    # фильтрация истории до заданной даты, если указана
+    if until_date:
+        full_merged_df = full_merged_df[
+            pd.to_datetime(full_merged_df["history_date"]) <= pd.to_datetime(until_date, format="%Y-%m-%d")
+        ]
+
+    # фильтрация задач, не попадающих под критерии "Сделано" и "Снято" на конец спринта
     latest_status_df = (
         full_merged_df.sort_values(by=["history_date", "history_version"])
         .groupby("task_id")
@@ -163,7 +178,9 @@ def calculate_in_progress_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     in_progress_metric_df = in_progress_metric.reset_index()
-    in_progress_metric_df.columns = ["Sprint Name", "In Progress Metric (hours)"]
+    in_progress_metric_df.columns = pd.Index(
+        ["Sprint Name", "In Progress Metric (hours)"]
+    )
     return in_progress_metric_df
 
 
@@ -177,9 +194,18 @@ def _test_metric_in_progress(full_merged_df: pd.DataFrame) -> None:
     )
 
 
-def calculate_done_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
+def calculate_done_metric(
+    full_merged_df: pd.DataFrame, until_date: str | None = None
+) -> pd.DataFrame:
+    full_merged_df = full_merged_df.copy()
+    # Фильтрация истории до заданной даты, если указана
+    if until_date:
+        full_merged_df = full_merged_df[
+            pd.to_datetime(full_merged_df["history_date"]) <= pd.to_datetime(until_date, format="%Y-%m-%d")
+        ]
+
     # Фильтрация задач, находящихся в статусах "Закрыто" или "Выполнено" на конец спринта
-    latest_status_df = full_merged_df.sort_values(by=["history_date", "history_version"]).groupby("task_id").tail(1)
+    latest_status_df = (full_merged_df.sort_values(by=["history_date", "history_version"]).groupby("task_id").tail(1))
     done_tasks_df = latest_status_df[(latest_status_df["status"].isin(["Закрыто", "Выполнено"])) & (latest_status_df["sprint_name"].notna())]
 
     # Исключение снятых объектов
@@ -189,7 +215,7 @@ def calculate_done_metric(full_merged_df: pd.DataFrame) -> pd.DataFrame:
     done_metric = done_tasks_df.groupby("sprint_name")["estimation"].sum() / 3600
 
     done_metric_df = done_metric.reset_index()
-    done_metric_df.columns = ["Sprint Name", "Done Metric (hours)"]
+    done_metric_df.columns = pd.Index(["Sprint Name", "Done Metric (hours)"])
     return done_metric_df
 
 
@@ -197,8 +223,16 @@ def _test_metric_done(full_merged_df: pd.DataFrame) -> None:
     # Вычисление метрики "Сделано"
     done_metric_df = calculate_done_metric(full_merged_df)
     # Сохранение результатов в CSV файл
-    done_metric_df.to_csv('done_metric_per_sprint.csv', index=False)
+    done_metric_df.to_csv("done_metric_per_sprint.csv", index=False)
     print("Метрика 'Сделано' успешно сохранена в файл 'done_metric_per_sprint.csv'")
+
+
+def _test_metric_done_until(full_merged_df: pd.DataFrame, until_date: str) -> None:
+    # Вычисление метрики "Сделано"
+    done_metric_df = calculate_done_metric(full_merged_df, until_date)
+    # Сохранение результатов в CSV файл
+    done_metric_df.to_csv("done_metric_per_sprint_until.csv", index=False)
+    print_rich(f"Метрика 'Сделано' до [red]{until_date}[/red] успешно сохранена в файл 'done_metric_per_sprint.csv'")
 
 
 if __name__ == "__main__":
@@ -211,6 +245,15 @@ if __name__ == "__main__":
 
     tables_cleaned = clean_up_tables(raw_data)
     full_merged_df = get_full_merged_df(tables_cleaned)
+    
+    # приводим history_date к datetime
+    full_merged_df["history_date"] = pd.to_datetime(
+        full_merged_df["history_date"],
+        format="%m/%d/%y %H:%M"
+    )
+    
     _test_metric_in_progress(full_merged_df)
     _test_metric_todo(full_merged_df)
     _test_metric_done(full_merged_df)
+    _test_metric_done_until(full_merged_df, "2024-08-15")
+

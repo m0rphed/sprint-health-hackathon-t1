@@ -3,7 +3,7 @@ name = "sprint_stat_api"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
-    {name = "Vic Khov", email = "victorkhovtko@gmail.com"},
+    {name = "Victor Khovanov", email = "victorkhovtko@gmail.com"},
 ]
 dependencies = [
     "fastapi[standard]>=0.115.5",
@@ -19,7 +19,6 @@ license = {text = "MIT"}
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
-
 
 [tool.pdm]
 distribution = true

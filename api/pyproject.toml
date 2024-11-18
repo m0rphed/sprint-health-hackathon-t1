@@ -22,3 +22,10 @@ build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = true
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "ruff>=0.7.4",
+    "rich>=13.9.4",
+]
